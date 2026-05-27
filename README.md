@@ -1,7 +1,7 @@
 
 # MSSE642
 
-This repository contains course materials and assignments for MSSE642 Software Assurance.git
+This repository contains course materials and assignments for MSSE642 Software Assurance
 
 ## Assignments
 
