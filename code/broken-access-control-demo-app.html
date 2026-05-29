@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Broken Access Control — Security Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2236;
+    --border: rgba(255,255,255,0.07);
+    --border-bright: rgba(255,255,255,0.15);
+    --accent: #e63946;
+    --accent2: #4cc9f0;
+    --accent3: #06d6a0;
+    --accent4: #ffd166;
+    --text: #f0f4ff;
+    --text-muted: #8892a4;
+    --text-dim: #4a5568;
+    --mono: 'Space Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+    --radius: 10px;
+    --radius-lg: 16px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* HEADER */
+  .header {
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    background: rgba(10,14,26,0.92);
+    backdrop-filter: blur(12px);
+    z-index: 100;
+  }
+  .logo {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+  }
+  .logo span { color: var(--text-muted); }
+  .owasp-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    letter-spacing: 0.05em;
+  }
+
+  /* NAV */
+  .nav {
+    display: flex;
+    gap: 4px;
+    padding: 1.25rem 2rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    overflow-x: auto;
+  }
+  .nav-btn {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 16px;
+    border-radius: 999px;
+    border: 1px solid var(--border-bright);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .nav-btn:hover { background: var(--surface2); color: var(--text); border-color: var(--border-bright); }
+  .nav-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .nav-btn svg { width: 14px; height: 14px; }
+
+  /* MAIN */
+  .main { max-width: 780px; margin: 0 auto; padding: 2rem 2rem 4rem; }
+  .section { display: none; animation: fadeIn 0.2s ease; }
+  .section.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* TYPOGRAPHY */
+  h1 { font-family: var(--mono); font-size: 28px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
+  h2 { font-size: 18px; font-weight: 600; margin-bottom: 0.5rem; }
+  h3 { font-size: 15px; font-weight: 500; margin-bottom: 0.5rem; }
+  p { font-size: 14px; color: var(--text-muted); line-height: 1.75; }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: var(--border-bright); }
+
+  /* BADGES */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    font-family: var(--mono);
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 999px;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+  }
+  .badge-red { background: rgba(230,57,70,0.15); color: var(--accent); border: 1px solid rgba(230,57,70,0.3); }
+  .badge-blue { background: rgba(76,201,240,0.12); color: var(--accent2); border: 1px solid rgba(76,201,240,0.25); }
+  .badge-green { background: rgba(6,214,160,0.12); color: var(--accent3); border: 1px solid rgba(6,214,160,0.25); }
+  .badge-yellow { background: rgba(255,209,102,0.12); color: var(--accent4); border: 1px solid rgba(255,209,102,0.25); }
+
+  /* STEPS */
+  .steps { display: flex; flex-direction: column; gap: 10px; margin-top: 0.5rem; }
+  .step { display: flex; gap: 12px; align-items: flex-start; }
+  .step-num {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: rgba(230,57,70,0.15); border: 1px solid rgba(230,57,70,0.3);
+    color: var(--accent); font-size: 11px; font-family: var(--mono); font-weight: 700;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;
+  }
+  .step-text { font-size: 13px; color: var(--text-muted); }
+  .step-text strong { color: var(--text); font-weight: 500; }
+
+  /* DEMO SECTION */
+  .url-bar {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px 14px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 0.75rem 0 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .url-host { color: var(--text-dim); }
+  .url-path { color: var(--accent2); }
+
+  .url-input {
+    background: var(--bg);
+    border: 1px solid var(--border-bright);
+    border-radius: var(--radius);
+    padding: 8px 14px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+    width: 100%;
+    margin-bottom: 0.75rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .url-input:focus { border-color: var(--accent2); }
+
+  select.url-input { height: 38px; cursor: pointer; }
+
+  .inline-input {
+    background: var(--surface2);
+    border: 1px solid var(--border-bright);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent4);
+    width: 80px;
+    outline: none;
+  }
+
+  .send-btn {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 18px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-bright);
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .send-btn:hover { background: var(--surface2); border-color: var(--accent2); color: var(--accent2); }
+  .send-btn svg { width: 13px; height: 13px; }
+
+  .response-box {
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.8;
+    margin-top: 0.75rem;
+    display: none;
+    white-space: pre-wrap;
+    animation: fadeIn 0.2s ease;
+  }
+  .response-ok { background: rgba(6,214,160,0.08); border: 1px solid rgba(6,214,160,0.25); color: var(--accent3); }
+  .response-vuln { background: rgba(255,209,102,0.08); border: 1px solid rgba(255,209,102,0.25); color: var(--accent4); }
+  .response-err { background: rgba(230,57,70,0.08); border: 1px solid rgba(230,57,70,0.3); color: var(--accent); }
+  .response-box.show { display: block; }
+
+  .vuln-label {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(255,209,102,0.15);
+    color: var(--accent4);
+    border: 1px solid rgba(255,209,102,0.3);
+    margin-bottom: 4px;
+    letter-spacing: 0.05em;
+  }
+
+  .code-block {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.9;
+    margin: 0.75rem 0;
+  }
+  .code-bad { color: #ff6b6b; text-decoration: line-through; opacity: 0.7; }
+  .code-good { color: var(--accent3); }
+  .code-comment { color: var(--text-dim); }
+  .code-neutral { color: var(--text-muted); }
+
+  /* QUIZ */
+  .quiz-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem; }
+  .quiz-progress {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 1.5rem;
+  }
+  .progress-pip {
+    height: 3px;
+    flex: 1;
+    border-radius: 999px;
+    background: var(--border-bright);
+    transition: background 0.3s;
+  }
+  .progress-pip.done { background: var(--accent3); }
+  .progress-pip.current { background: var(--accent2); }
+  .quiz-q { font-size: 15px; font-weight: 500; color: var(--text); line-height: 1.5; margin-bottom: 1.25rem; }
+  .quiz-opt {
+    width: 100%;
+    text-align: left;
+    padding: 11px 16px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-bright);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--sans);
+    font-size: 13px;
+    cursor: pointer;
+    margin-bottom: 6px;
+    display: block;
+    transition: all 0.2s;
+  }
+  .quiz-opt:hover:not(:disabled) { background: var(--surface2); color: var(--text); border-color: var(--accent2); }
+  .quiz-opt.correct { background: rgba(6,214,160,0.1); border-color: var(--accent3); color: var(--accent3); }
+  .quiz-opt.wrong { background: rgba(230,57,70,0.08); border-color: var(--accent); color: var(--accent); }
+  .quiz-opt:disabled { cursor: default; }
+  .quiz-feedback {
+    font-size: 13px;
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    margin-top: 0.75rem;
+    display: none;
+    line-height: 1.6;
+    animation: fadeIn 0.2s ease;
+  }
+  .quiz-feedback.show { display: block; }
+  .fb-correct { background: rgba(6,214,160,0.08); border: 1px solid rgba(6,214,160,0.2); color: var(--accent3); }
+  .fb-wrong { background: rgba(230,57,70,0.08); border: 1px solid rgba(230,57,70,0.2); color: #ff8a8a; }
+
+  /* SCORE */
+  .score-screen { text-align: center; padding: 2rem 0; display: none; }
+  .score-ring {
+    width: 100px; height: 100px; border-radius: 50%;
+    border: 3px solid var(--accent3);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1.5rem;
+    font-family: var(--mono);
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--accent3);
+    background: rgba(6,214,160,0.06);
+  }
+  .restart-btn {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 9px 22px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-bright);
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    margin-top: 1rem;
+    transition: all 0.2s;
+  }
+  .restart-btn:hover { background: var(--surface2); }
+
+  /* FIX SECTION */
+  .principle-header { display: flex; align-items: center; gap: 10px; margin-bottom: 0.5rem; }
+  .principle-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(6,214,160,0.1);
+    border: 1px solid rgba(6,214,160,0.2);
+    flex-shrink: 0;
+  }
+  .principle-icon svg { width: 16px; height: 16px; color: var(--accent3); }
+
+  /* HERO */
+  .hero { padding: 2rem 0 1.5rem; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; }
+  .hero-sub { font-size: 13px; color: var(--text-muted); margin-top: 0.5rem; }
+  .hero-meta { display: flex; gap: 10px; margin-top: 1rem; flex-wrap: wrap; }
+  .meta-pill {
+    font-size: 11px;
+    font-family: var(--mono);
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border-bright);
+    color: var(--text-muted);
+  }
+
+  /* DIVIDER */
+  hr { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo">SEC<span>_</span>LAB <span>// broken access control</span></div>
+  <div class="owasp-badge">#1 OWASP 2025</div>
+</header>
+
+<nav class="nav">
+  <button class="nav-btn active" onclick="showTab('learn')">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12M2 8h8M2 13h5"/></svg>
+    Learn
+  </button>
+  <button class="nav-btn" onclick="showTab('demo')">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3l4 4-4 4M9 11h4"/></svg>
+    Try it
+  </button>
+  <button class="nav-btn" onclick="showTab('fix')">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2l1.5 3 3.5.5-2.5 2.5.5 3.5L8 10l-3 1.5.5-3.5L3 5.5 6.5 5z"/></svg>
+    Fix it
+  </button>
+  <button class="nav-btn" onclick="showTab('quiz')">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v4M8 11v.5"/></svg>
+    Quiz
+  </button>
+</nav>
+
+<main class="main">
+
+  <!-- LEARN -->
+  <div id="tab-learn" class="section active">
+    <div class="hero">
+      <h1>Broken access control</h1>
+      <p class="hero-sub">The #1 most critical web application security risk, according to OWASP's 2021 and 2025 Top 10.</p>
+      <div class="hero-meta">
+        <span class="meta-pill">CWE-284</span>
+        <span class="meta-pill">High severity</span>
+        <span class="meta-pill">Very common</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <span class="badge badge-red">Core concept</span>
+      <h2>What is it?</h2>
+      <p>Access control decides <em>who can do what</em> in an application. When it's broken, users can act outside their intended permissions — accessing other users' data, admin features, or protected resources they were never supposed to reach.</p>
+      <p style="margin-top:0.5rem;">The bug is almost always the same: the server trusts the client, or forgets to check authorization at all.</p>
+    </div>
+
+    <div class="card">
+      <span class="badge badge-yellow">Attack types</span>
+      <h2>How attackers exploit it</h2>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-text"><strong>IDOR — Insecure Direct Object Reference</strong><br>Changing an ID in a URL to access someone else's record. e.g. <span style="font-family:var(--mono);font-size:11px;color:var(--accent2);">/orders/42</span> → <span style="font-family:var(--mono);font-size:11px;color:var(--accent);">/orders/99</span></div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-text"><strong>Privilege escalation</strong><br>A regular user accessing admin-only pages or endpoints, either by guessing the URL or manipulating request data.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-text"><strong>Forced browsing</strong><br>Navigating directly to a URL like <span style="font-family:var(--mono);font-size:11px;color:var(--accent2);">/admin/users</span> without being authorized. The UI hides the link, but the server never checks.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-text"><strong>HTTP method manipulation</strong><br>Switching from GET to PUT or DELETE to bypass read-only restrictions on an endpoint.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-text"><strong>Missing function-level checks</strong><br>APIs that rely on the UI to hide sensitive actions — but don't verify authorization when the API is called directly.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <span class="badge badge-blue">Real-world impact</span>
+      <h2>Why it matters</h2>
+      <p>Exploiting broken access control lets attackers read private user data, modify or delete records, impersonate other users, perform admin actions, and take over entire accounts. It topped the OWASP list because it's simultaneously very common and very severe — and often trivially easy to exploit.</p>
+    </div>
+  </div>
+
+  <!-- DEMO -->
+  <div id="tab-demo" class="section">
+    <div class="hero">
+      <h1>Try it yourself</h1>
+      <p class="hero-sub">Simulate real attacks against deliberately vulnerable server responses. See exactly what happens — and why it's dangerous.</p>
+    </div>
+
+    <div class="card">
+      <span class="badge badge-red">Scenario 1</span>
+      <h2>IDOR — Access another user's order</h2>
+      <p>You're logged in as <strong style="color:var(--text);font-weight:500;">Alice (user id: 42)</strong>. Edit the order ID in the URL and hit Send.</p>
+      <div class="url-bar">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="10" height="7" rx="1"/><path d="M5 7V5a3 3 0 016 0v2"/></svg>
+        <span class="url-host">shop.example.com</span><span class="url-path">/api/orders/</span>
+      </div>
+      <input class="url-input" id="idor-input" value="42" oninput="clearResult('idor-res')" />
+      <button class="send-btn" onclick="runIDOR()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8h12M10 4l4 4-4 4"/></svg>
+        Send request
+      </button>
+      <div class="response-box" id="idor-res"></div>
+    </div>
+
+    <hr>
+
+    <div class="card">
+      <span class="badge badge-red">Scenario 2</span>
+      <h2>Forced browsing — Admin panel access</h2>
+      <p>You're a regular user. Pick a URL path and see what a vulnerable server returns.</p>
+      <div class="url-bar">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="10" height="7" rx="1"/><path d="M5 7V5a3 3 0 016 0v2"/></svg>
+        <span class="url-host">app.example.com</span>
+      </div>
+      <select class="url-input" id="path-input" oninput="clearResult('path-res')">
+        <option value="/dashboard">/dashboard</option>
+        <option value="/admin">/admin</option>
+        <option value="/admin/users">/admin/users</option>
+        <option value="/admin/delete-all">/admin/delete-all</option>
+      </select>
+      <button class="send-btn" onclick="runForced()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8h12M10 4l4 4-4 4"/></svg>
+        Send request
+      </button>
+      <div class="response-box" id="path-res"></div>
+    </div>
+
+    <hr>
+
+    <div class="card">
+      <span class="badge badge-red">Scenario 3</span>
+      <h2>Privilege escalation — Tamper with your role</h2>
+      <p>The app trusts the role value sent in the request body. Try changing it.</p>
+      <div class="code-block">
+        POST /api/profile<br>
+        Content-Type: application/json<br><br>
+        {<br>
+        &nbsp;&nbsp;"name": "Alice",<br>
+        &nbsp;&nbsp;"role": <input id="role-input" class="inline-input" value="user" oninput="clearResult('role-res')"><br>
+        }
+      </div>
+      <button class="send-btn" onclick="runRole()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8h12M10 4l4 4-4 4"/></svg>
+        Send request
+      </button>
+      <div class="response-box" id="role-res"></div>
+    </div>
+  </div>
+
+  <!-- FIX -->
+  <div id="tab-fix" class="section">
+    <div class="hero">
+      <h1>How to fix it</h1>
+      <p class="hero-sub">Four principles that eliminate most broken access control vulnerabilities.</p>
+    </div>
+
+    <div class="card">
+      <div class="principle-header">
+        <div class="principle-icon">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2l1 3h3l-2.5 2 1 3L8 8.5 5.5 10l1-3L4 5h3z"/></svg>
+        </div>
+        <div>
+          <span class="badge badge-green" style="margin-bottom:0;">Principle 1</span>
+          <h2 style="margin-top:4px;">Deny by default</h2>
+        </div>
+      </div>
+      <p>If a route has no explicit access rule, refuse it. Never assume access is allowed — always require it to be granted.</p>
+      <div class="code-block">
+        <span class="code-comment"># Bad — allow unless explicitly blocked</span><br>
+        <span class="code-bad">if user.role == "admin": show_page()</span><br><br>
+        <span class="code-comment"># Good — deny unless explicitly allowed</span><br>
+        <span class="code-good">if not user.can("view_admin"): return 403</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="principle-header">
+        <div class="principle-icon">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="10" height="7" rx="1"/><path d="M5 7V5a3 3 0 016 0v2"/></svg>
+        </div>
+        <div>
+          <span class="badge badge-green" style="margin-bottom:0;">Principle 2</span>
+          <h2 style="margin-top:4px;">Always check ownership server-side</h2>
+        </div>
+      </div>
+      <p>Never trust IDs from the client. Scope every database query to the authenticated user so it's impossible to access records belonging to others.</p>
+      <div class="code-block">
+        <span class="code-comment"># Bad — trusts the ID from the URL</span><br>
+        <span class="code-bad">order = Order.find(params[:id])</span><br><br>
+        <span class="code-comment"># Good — scoped to the current user</span><br>
+        <span class="code-good">order = current_user.orders.find(params[:id])</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="principle-header">
+        <div class="principle-icon">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2a3 3 0 100 6 3 3 0 000-6zM3 14a5 5 0 0110 0"/></svg>
+        </div>
+        <div>
+          <span class="badge badge-green" style="margin-bottom:0;">Principle 3</span>
+          <h2 style="margin-top:4px;">Never trust client-supplied roles</h2>
+        </div>
+      </div>
+      <p>Roles and permissions must come from the server session, set at login — never from a form field, cookie value, or request body the user controls.</p>
+      <div class="code-block">
+        <span class="code-comment"># Bad — attacker controls this</span><br>
+        <span class="code-bad">role = request.body["role"]</span><br><br>
+        <span class="code-comment"># Good — set by the server at login</span><br>
+        <span class="code-good">role = session["role"]</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="principle-header">
+        <div class="principle-icon">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h8M2 12h5"/></svg>
+        </div>
+        <div>
+          <span class="badge badge-green" style="margin-bottom:0;">Principle 4</span>
+          <h2 style="margin-top:4px;">Log and alert on failures</h2>
+        </div>
+      </div>
+      <p>Every access control failure should be logged. Repeated failures from the same user or IP are a strong signal of an active attack — and should trigger rate limiting or alerts.</p>
+      <div class="code-block">
+        <span class="code-good">if not authorized:</span><br>
+        <span class="code-good">&nbsp;&nbsp;log.warn(f"Access denied: {user.id} → {route}")</span><br>
+        <span class="code-good">&nbsp;&nbsp;alert_if_threshold_exceeded(user.id)</span><br>
+        <span class="code-good">&nbsp;&nbsp;return 403</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUIZ -->
+  <div id="tab-quiz" class="section">
+    <div class="hero">
+      <h1>Test your knowledge</h1>
+      <p class="hero-sub">Five questions to check your understanding of broken access control.</p>
+    </div>
+
+    <div class="quiz-card">
+      <div class="quiz-progress" id="quiz-progress"></div>
+      <div id="quiz-body"></div>
+      <div class="score-screen" id="quiz-done">
+        <div class="score-ring" id="score-ring"></div>
+        <h2 id="score-title"></h2>
+        <p id="score-msg" style="margin-top:0.5rem;"></p>
+        <button class="restart-btn" onclick="restartQuiz()">Try again</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  // NAV
+  function showTab(id) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + id).classList.add('active');
+    const idx = ['learn','demo','fix','quiz'].indexOf(id);
+    document.querySelectorAll('.nav-btn')[idx].classList.add('active');
+  }
+
+  // DEMO helpers
+  function clearResult(id) {
+    const el = document.getElementById(id);
+    el.className = 'response-box';
+    el.textContent = '';
+  }
+  function showResult(id, cls, text) {
+    const el = document.getElementById(id);
+    el.className = 'response-box show ' + cls;
+    el.textContent = text;
+  }
+
+  function runIDOR() {
+    const val = document.getElementById('idor-input').value.trim();
+    const num = parseInt(val);
+    if (val === '42' || num === 42) {
+      showResult('idor-res', 'response-ok',
+        '200 OK\n\n{"order_id": 42, "user": "Alice", "items": ["Coffee x2", "Croissant"], "total": "$12.50"}');
+    } else if (!isNaN(num) && num > 0) {
+      const names = ['Bob','Carol','Dave','Eve','Frank','Grace'];
+      showResult('idor-res', 'response-vuln',
+        '⚠ 200 OK — VULNERABLE\n\n{"order_id": ' + num + ', "user": "' + names[num % names.length] + '", "items": ["Private order data"], "total": "$' + (num * 3.14).toFixed(2) + '"}\n\nA correctly secured server would return 403 Forbidden here.\nThe server failed to verify this order belongs to the authenticated user.');
+    } else {
+      showResult('idor-res', 'response-err', '400 Bad Request\n\n{"error": "Invalid order ID"}');
+    }
+  }
+
+  function runForced() {
+    const path = document.getElementById('path-input').value;
+    if (path === '/dashboard') {
+      showResult('path-res', 'response-ok', '200 OK\n\nWelcome back, Alice! Here is your dashboard.');
+    } else if (path === '/admin') {
+      showResult('path-res', 'response-vuln',
+        '⚠ 200 OK — VULNERABLE\n\nAdmin panel loaded for a non-admin user.\nAll admin controls are now accessible.\n\nA correctly secured server would return 403 Forbidden.');
+    } else if (path === '/admin/users') {
+      showResult('path-res', 'response-vuln',
+        '⚠ 200 OK — VULNERABLE\n\n[\n  {"id":1,"email":"alice@example.com","role":"user"},\n  {"id":2,"email":"bob@example.com","role":"user"},\n  {"id":3,"email":"admin@example.com","role":"admin"},\n  ...47 more records\n]\n\nFull user list exposed to an unauthorized caller.');
+    } else {
+      showResult('path-res', 'response-vuln',
+        '⚠ 200 OK — VULNERABLE\n\n{"message": "All 50,000 records deleted successfully."}\n\nA destructive admin action was performed without any authorization check.');
+    }
+  }
+
+  function runRole() {
+    const role = document.getElementById('role-input').value.trim().toLowerCase();
+    if (role === 'admin') {
+      showResult('role-res', 'response-vuln',
+        '⚠ 200 OK — VULNERABLE\n\n{"message": "Profile updated", "role": "admin", "access": "full"}\n\nThe server accepted a client-supplied role value.\nAlice just promoted herself to admin by editing a field in the request.');
+    } else if (role === 'user') {
+      showResult('role-res', 'response-ok',
+        '200 OK\n\n{"message": "Profile updated", "role": "user"}');
+    } else {
+      showResult('role-res', 'response-err',
+        '400 Bad Request\n\n{"error": "Invalid role value"}');
+    }
+  }
+
+  // QUIZ
+  const questions = [
+    {
+      q: "A user changes /api/orders/100 to /api/orders/101 and sees someone else's private order. What type of attack is this?",
+      opts: ["Privilege escalation","IDOR (Insecure Direct Object Reference)","SQL injection","CSRF"],
+      correct: 1,
+      explain: "Correct! IDOR occurs when an app exposes a direct reference to an internal object (like a database record ID) that can be manipulated to access unauthorized data."
+    },
+    {
+      q: "Where should role and permission data be stored to prevent privilege escalation attacks?",
+      opts: ["In a cookie the user can edit","In the JSON request body","In a hidden form field","In the server-side session, set at login"],
+      correct: 3,
+      explain: "Correct! Roles must be stored server-side (e.g. in the session established at login). Any value sent by the client can be tampered with — the server must be the authority."
+    },
+    {
+      q: "A user navigates directly to /admin without being an admin, and the page loads successfully. What's the root cause?",
+      opts: ["SQL injection","The server has no access check on that route","XSS","A broken authentication bug"],
+      correct: 1,
+      explain: "Correct! This is forced browsing. The UI might hide the link, but the server itself must verify authorization on every request — not just at the UI layer."
+    },
+    {
+      q: "Which access control policy is considered the most secure default?",
+      opts: ["Allow all, then block what's explicitly forbidden","Allow if the user is authenticated","Deny all, then grant what's explicitly allowed","Allow if the URL path looks safe"],
+      correct: 2,
+      explain: "Correct! Deny by default is a foundational security principle. Access must be earned through explicit rules — never assumed."
+    },
+    {
+      q: "An app hides the Delete button from non-admins in the UI, but the underlying DELETE /api/items/:id endpoint has no server-side authorization check. What's wrong?",
+      opts: ["Nothing — hiding the UI is sufficient security","The API is still directly callable and must enforce its own checks","The button's CSS should also be encrypted","Admins shouldn't have delete access either"],
+      correct: 1,
+      explain: "Correct! UI-only restrictions are trivially bypassed — anyone can call an API endpoint directly. Every endpoint must independently verify that the caller is authorized."
+    }
+  ];
+
+  let current = 0, score = 0;
+
+  function renderPips() {
+    const p = document.getElementById('quiz-progress');
+    p.innerHTML = questions.map((_, i) =>
+      `<div class="progress-pip ${i < current ? 'done' : i === current ? 'current' : ''}"></div>`
+    ).join('');
+  }
+
+  function renderQuestion() {
+    renderPips();
+    const q = questions[current];
+    let html = `<p class="quiz-q">${q.q}</p>`;
+    q.opts.forEach((opt, i) => {
+      html += `<button class="quiz-opt" id="opt-${i}" onclick="answer(${i})">${opt}</button>`;
+    });
+    html += `<div class="quiz-feedback" id="qfb"></div>`;
+    document.getElementById('quiz-body').innerHTML = html;
+  }
+
+  function answer(i) {
+    const q = questions[current];
+    document.querySelectorAll('.quiz-opt').forEach(b => b.disabled = true);
+    const fb = document.getElementById('qfb');
+    if (i === q.correct) {
+      score++;
+      document.getElementById('opt-' + i).classList.add('correct');
+      fb.className = 'quiz-feedback show fb-correct';
+      fb.textContent = '✓ ' + q.explain;
+    } else {
+      document.getElementById('opt-' + i).classList.add('wrong');
+      document.getElementById('opt-' + q.correct).classList.add('correct');
+      fb.className = 'quiz-feedback show fb-wrong';
+      fb.textContent = '✗ Not quite. ' + q.explain;
+    }
+    setTimeout(() => {
+      current++;
+      if (current < questions.length) {
+        renderQuestion();
+      } else {
+        document.getElementById('quiz-body').innerHTML = '';
+        const done = document.getElementById('quiz-done');
+        done.style.display = 'block';
+        document.getElementById('score-ring').textContent = score + '/' + questions.length;
+        const msgs = [
+          ['Keep going!', 'Review the Learn and Fix tabs, then try again.'],
+          ['Getting there.', 'A couple of concepts to revisit — try the demo scenarios.'],
+          ['Solid work.', 'You have a good grasp of the basics.'],
+          ['Great job!', 'You understand broken access control well.'],
+          ['Perfect score!', 'You nailed every question. Excellent understanding.'],
+        ];
+        const m = msgs[Math.min(score, 4)];
+        document.getElementById('score-title').textContent = m[0];
+        document.getElementById('score-msg').textContent = m[1];
+        renderPips();
+      }
+    }, 2400);
+  }
+
+  function restartQuiz() {
+    current = 0; score = 0;
+    document.getElementById('quiz-done').style.display = 'none';
+    renderQuestion();
+  }
+
+  renderQuestion();
+</script>
+</body>
+</html>
