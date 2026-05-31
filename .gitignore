@@ -1,2 +1,5 @@
 # Ignore the readings directory
 readings/
+
+# Ignore the pen_testing folder
+code/pen_testing/
