@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Injection: The Inside Job</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f8f7f4;
+    --surface: #ffffff;
+    --surface-secondary: #f1f0ed;
+    --border: #e4e2dd;
+    --border-strong: #ccc9c2;
+    --text: #1a1916;
+    --text-secondary: #6b6860;
+    --text-tertiary: #9c9a94;
+    --blue: #185FA5;
+    --blue-bg: #e8f1fb;
+    --blue-text: #0c447c;
+    --green: #1D9E75;
+    --green-bg: #e1f5ee;
+    --green-text: #085041;
+    --green-border: #5dcaa5;
+    --red: #E24B4A;
+    --red-bg: #fcebeb;
+    --red-text: #791f1f;
+    --red-border: #f09595;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+  }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Top bar ── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    border-bottom: 0.5px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+
+  .game-title {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.2px;
+    margin-right: auto;
+  }
+
+  .stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .stat-val {
+    font-weight: 600;
+    color: var(--text);
+    font-size: 13px;
+  }
+
+  .sep { color: var(--border-strong); }
+
+  .progress-row {
+    display: flex;
+    gap: 4px;
+    width: 80px;
+  }
+
+  .pdot {
+    height: 4px;
+    border-radius: 2px;
+    flex: 1;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+
+  .pdot.done { background: var(--green); }
+  .pdot.active { background: var(--blue); }
+
+  /* ── Main layout ── */
+  .main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── Left panel: story ── */
+  .left-panel {
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    border-right: 0.5px solid var(--border);
+    overflow: hidden;
+  }
+
+  .location-tag {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 9px;
+    border-radius: 99px;
+    margin-bottom: 10px;
+    letter-spacing: 0.2px;
+    flex-shrink: 0;
+  }
+
+  .scene-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 10px;
+    letter-spacing: -0.3px;
+    flex-shrink: 0;
+    line-height: 1.3;
+  }
+
+  .scene-body {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.75;
+    flex-shrink: 0;
+  }
+
+  .scene-body strong { color: var(--text); font-weight: 500; }
+
+  .screen-mock {
+    background: #1a1916;
+    color: #c8c5be;
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    margin-top: 14px;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    font-size: 11.5px;
+    line-height: 1.65;
+    white-space: pre-wrap;
+    flex-shrink: 0;
+  }
+
+  .screen-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 9px;
+    color: #6b6860;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 7px;
+  }
+
+  /* ── Right panel: question + choices ── */
+  .right-panel {
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    overflow: hidden;
+  }
+
+  .question-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 12px;
+    line-height: 1.6;
+    white-space: pre-line;
+    flex-shrink: 0;
+  }
+
+  .choices {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .choice-btn {
+    text-align: left;
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+    border: 0.5px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    line-height: 1.5;
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    transition: background 0.12s, border-color 0.12s;
+  }
+
+  .choice-btn:hover:not(:disabled) {
+    background: var(--surface-secondary);
+    border-color: var(--blue);
+  }
+
+  .choice-btn:disabled { cursor: default; }
+  .choice-btn.correct { border-color: var(--green-border); background: var(--green-bg); color: var(--green-text); }
+  .choice-btn.wrong   { border-color: var(--red-border);   background: var(--red-bg);   color: var(--red-text); }
+  .choice-btn.my-pick { border-width: 2px; }
+
+  .choice-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; width: 16px; font-weight: 600; }
+  .choice-icon.check { color: var(--green); }
+  .choice-icon.cross { color: var(--red); }
+
+  /* ── Feedback ── */
+  .feedback-area {
+    margin-top: 14px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow: hidden;
+  }
+
+  .feedback {
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    font-size: 12.5px;
+    line-height: 1.65;
+    flex-shrink: 0;
+  }
+
+  .feedback.good { background: var(--green-bg); color: var(--green-text); border: 0.5px solid var(--green-border); }
+  .feedback.bad  { background: var(--red-bg);   color: var(--red-text);   border: 0.5px solid var(--red-border); }
+  .feedback strong { font-weight: 500; }
+
+  .key-lesson {
+    padding: 9px 12px;
+    font-size: 12px;
+    color: var(--blue-text);
+    border-left: 3px solid var(--blue);
+    background: var(--blue-bg);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    line-height: 1.6;
+    flex-shrink: 0;
+  }
+
+  .key-lesson strong { font-weight: 500; }
+
+  .next-btn {
+    margin-top: auto;
+    align-self: flex-start;
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    padding: 8px 18px;
+    border-radius: var(--radius-md);
+    border: none;
+    background: var(--blue);
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.15s;
+    flex-shrink: 0;
+  }
+
+  .next-btn:hover { background: var(--blue-text); }
+
+  /* ── End screen ── */
+  .end-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2rem;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .end-trophy  { font-size: 44px; margin-bottom: 12px; }
+  .end-title   { font-size: 20px; font-weight: 600; letter-spacing: -0.3px; margin-bottom: 6px; }
+  .end-score   { font-size: 30px; font-weight: 600; color: var(--blue); margin-bottom: 4px; }
+  .end-label   { font-size: 12px; color: var(--text-tertiary); margin-bottom: 14px; }
+  .end-body    { font-size: 13px; color: var(--text-secondary); line-height: 1.75; max-width: 360px; margin-bottom: 14px; }
+
+  .end-lesson {
+    background: var(--blue-bg);
+    border-left: 3px solid var(--blue);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    padding: 10px 14px;
+    font-size: 12.5px;
+    color: var(--blue-text);
+    text-align: left;
+    max-width: 400px;
+    margin-bottom: 20px;
+    line-height: 1.65;
+  }
+
+  .end-lesson strong { font-weight: 500; }
+
+  .btn-secondary {
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    padding: 8px 18px;
+    border-radius: var(--radius-md);
+    border: 0.5px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .btn-secondary:hover { background: var(--surface-secondary); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="game-title">Injection: The Inside Job</span>
+  <span class="stat">Chapter <span class="stat-val" id="hud-chapter">1/5</span></span>
+  <span class="sep">·</span>
+  <span class="stat">Score <span class="stat-val" id="hud-score">0</span></span>
+  <span class="sep">·</span>
+  <div class="progress-row" id="hud-dots"></div>
+</div>
+
+<div class="main" id="main-layout">
+  <div class="left-panel" id="left-panel"></div>
+  <div class="right-panel" id="right-panel"></div>
+</div>
+
+<script>
+const SCENES = [
+  {
+    location:"Day 1 — Your apartment", locationBg:"#ddeef9", locationColor:"#0c447c",
+    title:"The job offer",
+    body:"You're a freelance security consultant. A message arrives from TrekCo, an outdoor gear company: \"We think our website has a serious vulnerability. We need you to test it — legally — before the bad guys find it.\" They send you the URL to their customer login page. You open it in your browser.",
+    screen:null,
+    question:"What's your first move as a pen tester?",
+    choices:[
+      {text:"Try logging in with a normal username and password to understand how the form works first", correct:true},
+      {text:"Immediately start trying to break things — no need to understand it first", correct:false},
+      {text:"Email TrekCo asking them to just send you the source code instead", correct:false},
+    ],
+    goodFeedback:"Smart. Before attacking anything, you need to understand how it works normally. You log in with test credentials and notice the URL changes to <strong>/account?user=Preston</strong> — your name is going right into the address bar.",
+    badFeedback:"Jumping in blind usually wastes time. A good pen tester always maps out normal behavior first so they understand what \"broken\" looks like.",
+    lesson:null, points:100
+  },
+  {
+    location:"Day 1 — TrekCo login page", locationBg:"#d8f3e8", locationColor:"#085041",
+    title:"Something suspicious in the URL",
+    body:"After logging in, you notice the URL reads: <strong>/account?user=Preston</strong>. The site is putting your username directly into the web address — and probably straight into a database query. This is a classic warning sign.",
+    screen:"URL: /account?user=Preston\n\nBehind the scenes:\nSELECT * FROM users WHERE name = 'Preston'",
+    question:"What does it mean when user input goes directly into a database query without any protection?",
+    choices:[
+      {text:"It's fine — the database knows the difference between code and data", correct:false},
+      {text:"An attacker could sneak extra commands into the query by crafting their input carefully", correct:true},
+      {text:"It's only a problem if the site doesn't use HTTPS", correct:false},
+    ],
+    goodFeedback:"Exactly. Databases can't tell the difference between \"data someone typed\" and \"SQL commands\" unless the developer explicitly separates them. A clever attacker can type SQL commands instead of a name.",
+    badFeedback:"Databases are just programs — they execute whatever SQL they receive. If user input gets mixed in without protection, the database has no way to know what's a name and what's a command.",
+    lesson:"Key concept: SQL injection happens when user-supplied input is treated as part of a database command instead of just data.",
+    points:100
+  },
+  {
+    location:"Day 1 — TrekCo login page", locationBg:"#d8f3e8", locationColor:"#085041",
+    title:"The login form",
+    body:"You turn your attention to the login form. You know the site has an admin account — can someone get in without knowing the password? An attacker might try typing something unusual into the username box to confuse the database.",
+    screen:"Normal query:\nSELECT * FROM users\n  WHERE username = '[what you type]'\n  AND password = '[what you type]'",
+    question:"An attacker types this into the username field:\n' OR '1'='1' --\n\nWhat does that do?",
+    choices:[
+      {text:"Nothing — the database ignores weird characters like quotes and dashes", correct:false},
+      {text:"It crashes the server permanently", correct:false},
+      {text:"It tricks the query into skipping the password check by adding a condition that's always true", correct:true},
+    ],
+    goodFeedback:"Right! The quote closes the username field early, then <strong>OR '1'='1'</strong> is always true. The <strong>--</strong> comments out the password check entirely. The database lets the attacker in as admin.",
+    badFeedback:"Quotes are special in SQL — they mark where text starts and ends. Injecting one can \"break out\" of the data zone into the command zone, letting an attacker insert their own SQL logic.",
+    lesson:"Key concept: The single quote ( ' ) is SQL's string delimiter. Injecting one lets an attacker escape from the \"data\" zone into the \"command\" zone.",
+    points:100
+  },
+  {
+    location:"Day 2 — Product search page", locationBg:"#fdf0d8", locationColor:"#633806",
+    title:"Stealing data with UNION",
+    body:"You find a product search bar. When you search for \"boots\", the URL becomes <strong>/search?q=boots</strong> and the site shows matching products. Could an attacker pull data from other tables — like the customer table — that they're not supposed to see?",
+    screen:"Normal query:\nSELECT name, price FROM products\n  WHERE name LIKE '%boots%'\n\nReturns: Trail Boots $89, Summit Boots $120",
+    question:"An attacker searches for:\nboots' UNION SELECT email, password FROM customers --\n\nWhat happens?",
+    choices:[
+      {text:"The site shows boots AND appends customer emails and passwords to the results", correct:true},
+      {text:"The search fails with an error — UNION doesn't work like that", correct:false},
+      {text:"The attacker only sees boots that match in the customers table", correct:false},
+    ],
+    goodFeedback:"Exactly. UNION combines results of two separate queries. By injecting a second SELECT, the attacker appends a completely different table onto the product results — customer emails and passwords appear right on the page.",
+    badFeedback:"UNION is a real SQL command that joins two query results. When injected, it forces the database to run a second query of the attacker's choosing and blend those results into the page output.",
+    lesson:"Key concept: A UNION injection lets an attacker pull data from any table in the database, not just the one the page was designed to query.",
+    points:100
+  },
+  {
+    location:"Day 3 — Writing your report", locationBg:"#eceafe", locationColor:"#3c3489",
+    title:"The fix",
+    body:"You've confirmed two serious vulnerabilities: login bypass and data theft via UNION. Now you write up your findings. TrekCo's lead developer asks: \"So what should we actually change in the code?\"",
+    screen:"Vulnerable:\nquery = \"SELECT * FROM users WHERE\n  username = '\" + username + \"'\"\n\nFixed:\nquery = \"SELECT * FROM users WHERE username = ?\"\ndb.execute(query, [username])",
+    question:"What's the core fix that prevents SQL injection?",
+    choices:[
+      {text:"Switch from HTTP to HTTPS so attackers can't see the queries", correct:false},
+      {text:"Use parameterized queries — pass user input separately so the database never treats it as a command", correct:true},
+      {text:"Make all passwords longer so attackers can't guess them", correct:false},
+    ],
+    goodFeedback:"Exactly. Parameterized queries keep user input completely separate from the SQL command. The database receives the structure first, then slots in the data — it's impossible for the data to become a command.",
+    badFeedback:"HTTPS protects data in transit but doesn't change how the database processes queries. The root cause is mixing input and code — parameterized queries fix that at the source.",
+    lesson:"The universal fix: parameterized queries ensure user input is always treated as data, never as SQL. One change eliminates the entire class of injection vulnerabilities.",
+    points:100
+  }
+];
+
+let state = {scene:0, score:0, chosen:null, correct:null, done:false};
+
+function updateHud() {
+  document.getElementById('hud-chapter').textContent = (state.scene+1) + '/' + SCENES.length;
+  document.getElementById('hud-score').textContent = state.score;
+  document.getElementById('hud-dots').innerHTML = SCENES.map((_,i) =>
+    `<div class="pdot ${i < state.scene ? 'done' : i === state.scene ? 'active' : ''}"></div>`
+  ).join('');
+}
+
+function iconHtml(i, answered, chosenIdx, isCorrect) {
+  if (!answered) return '<span class="choice-icon"></span>';
+  const c = SCENES[state.scene].choices[i];
+  if (c.correct) return '<span class="choice-icon check">✓</span>';
+  if (i === chosenIdx && !isCorrect) return '<span class="choice-icon cross">✗</span>';
+  return '<span class="choice-icon"></span>';
+}
+
+function btnClass(i, answered, chosenIdx, isCorrect) {
+  let cls = 'choice-btn';
+  if (!answered) return cls;
+  const c = SCENES[state.scene].choices[i];
+  if (c.correct) cls += ' correct';
+  else if (i === chosenIdx && !isCorrect) cls += ' wrong';
+  if (i === chosenIdx) cls += ' my-pick';
+  return cls;
+}
+
+function render() {
+  updateHud();
+  const main = document.getElementById('main-layout');
+
+  if (state.done) {
+    const pct = Math.round(state.score / 500 * 100);
+    main.innerHTML = `<div class="end-screen" style="grid-column:1/-1">
+      <div class="end-trophy">${pct >= 80 ? '🏆' : '📋'}</div>
+      <div class="end-title">${pct >= 80 ? 'Great work' : 'Keep it up'}, pen tester!</div>
+      <div class="end-score">${state.score}<span style="font-size:16px;color:#9c9a94">/500</span></div>
+      <div class="end-label">${pct}% correct</div>
+      <div class="end-body">You played the role of a security consultant and uncovered real injection vulnerabilities — the same kind behind major real-world data breaches.</div>
+      <div class="end-lesson"><strong>The one rule that prevents all of this:</strong> Never mix user input directly into database commands. Parameterized queries keep data and code permanently separated.</div>
+      <button class="btn-secondary" onclick="resetGame()">↺ Play again</button>
+    </div>`;
+    return;
+  }
+
+  main.innerHTML = '<div class="left-panel" id="left-panel"></div><div class="right-panel" id="right-panel"></div>';
+
+  const s = SCENES[state.scene];
+  const answered = state.chosen !== null;
+
+  document.getElementById('left-panel').innerHTML = `
+    <span class="location-tag" style="background:${s.locationBg};color:${s.locationColor}">${s.location}</span>
+    <div class="scene-title">${s.title}</div>
+    <div class="scene-body">${s.body}</div>
+    ${s.screen ? `<div class="screen-mock"><div class="screen-label">What the server sees</div>${s.screen}</div>` : ''}
+  `;
+
+  const feedbackHtml = answered ? `
+    <div class="feedback-area">
+      <div class="feedback ${state.correct ? 'good' : 'bad'}">${state.correct ? s.goodFeedback : s.badFeedback}</div>
+      ${s.lesson ? `<div class="key-lesson"><strong>Remember:</strong> ${s.lesson}</div>` : ''}
+      <button class="next-btn" onclick="next()">${state.scene < SCENES.length-1 ? 'Next chapter →' : 'See results →'}</button>
+    </div>
+  ` : '';
+
+  document.getElementById('right-panel').innerHTML = `
+    <div class="question-text">${s.question}</div>
+    <div class="choices">
+      ${s.choices.map((c,i) => `
+        <button class="${btnClass(i, answered, state.chosen, state.correct)}"
+          onclick="${answered ? '' : 'pick('+i+')'}"
+          ${answered ? 'disabled' : ''}>
+          ${iconHtml(i, answered, state.chosen, state.correct)}
+          <span>${c.text}</span>
+        </button>
+      `).join('')}
+    </div>
+    ${feedbackHtml}
+  `;
+}
+
+function pick(i) {
+  state.chosen = i;
+  state.correct = SCENES[state.scene].choices[i].correct;
+  if (state.correct) state.score += SCENES[state.scene].points;
+  render();
+}
+
+function next() {
+  if (state.scene < SCENES.length-1) { state.scene++; state.chosen = null; state.correct = null; }
+  else state.done = true;
+  render();
+}
+
+function resetGame() {
+  state = {scene:0, score:0, chosen:null, correct:null, done:false};
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
