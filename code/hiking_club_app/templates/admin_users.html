@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Manage Users — Summit Hiking Club{% endblock %}
+
+{% block content %}
+<h1>Manage Users</h1>
+
+<table>
+    <thead>
+        <tr>
+            <th>Username</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for u in users %}
+        <tr>
+            <td>{{ u.username }}</td>
+            <td>{{ u.name or '—' }}</td>
+            <td>{{ u.email }}</td>
+            <td><span class="badge badge-{{ u.role }}">{{ u.role }}</span></td>
+            <td>
+                {% if u.is_active %}
+                    <span class="badge badge-active">Active</span>
+                {% else %}
+                    <span class="badge badge-disabled">Disabled</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if u.id != user.id %}
+                <form method="post" action="{{ url_for('toggle_user', uid=u.id) }}">
+                    <button class="btn btn-sm {{ 'btn-danger' if u.is_active else 'btn-primary' }}" type="submit">
+                        {{ 'Disable' if u.is_active else 'Enable' }}
+                    </button>
+                </form>
+                {% else %}
+                <span style="color:#999;font-size:0.85rem">(you)</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

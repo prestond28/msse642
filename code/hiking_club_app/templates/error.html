@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}{{ code }} — Summit Hiking Club{% endblock %}
+
+{% block content %}
+<div class="error-page">
+    <h1>{{ code }}</h1>
+    <p>{{ message }}</p>
+    <a class="btn btn-primary" href="{{ url_for('trips') }}">Go to Trips</a>
+</div>
+{% endblock %}

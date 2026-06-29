@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}My Profile — Summit Hiking Club{% endblock %}
+
+{% block content %}
+<h1>My Profile</h1>
+<div class="card" style="max-width:500px">
+    <p><strong>Username:</strong> {{ user.username }}</p>
+    <p><strong>Name:</strong> {{ user.name or '—' }}</p>
+    <p><strong>Email:</strong> {{ user.email }}</p>
+    <p><strong>Emergency Contact:</strong> {{ user.emergency_contact or '—' }}</p>
+    <p><strong>Role:</strong>
+        <span class="badge badge-{{ user.role }}">{{ user.role }}</span>
+    </p>
+    <div class="form-actions">
+        <a class="btn btn-primary" href="{{ url_for('edit_profile') }}">Edit Profile</a>
+    </div>
+</div>
+{% endblock %}
