@@ -63,3 +63,58 @@
 **Kali Linux 2019 inclusion:** Metasploit Framework is preinstalled in Kali Linux by default and requires no manual installation; the clearev and timestomp modules are bundled with the framework itself.
  
 **Application to the Hiking Club:** After showing they can get back into the site whenever they want, the team would use this step to test something just as important: would anyone notice? These tools let the team try clearing or messing with the records of what happened, to see whether the club's systems would actually catch and preserve evidence of a break-in. If the tampering goes unnoticed, that's a real problem to flag — it means even after an attack is discovered, there might not be enough information left to figure out what actually happened.
+
+# Part 2 - Vibe Coding the Hiking Club Application
+
+I used claude code to vibe code the hiking club application. It's basically just a simpler version of the app described in project 2:
+
+- Guest view: trip listing page (public, no login)
+- Auth: register/login/logout (Member + Admin roles)
+- Member view: see trip list, register for a trip, edit own profile
+- Trip Leader admin view: create/edit/delete their own events, view registrants
+- System Admin view: create/disable user accounts
+- A backend DB
+
+The code stack is Python/Flask with a SQLite database.
+
+Since Claude already helped me with the previous assignments and knew my chat history and how I wanted to operate things, I told it to make a markdown file for Claude Code to follow while building the app. I had AI tell AI what to do! Pretty crazy if you think about it...
+
+Here's what the app ended up looking like:
+
+![Hiking app running locally](../images/hiking-app-local-run.png)
+
+Find the code (and README) here: [Vibe-coded hiking app](../../code/hiking_club_app/)
+
+# Part 3 - App deployment on a virtual machine
+
+Getting the app running on a new virtual machine was harder than expected. First I had to set up a new VM with virtual box that had Ubuntu, then I had to install python and the necessary libraries onto the VM. I also had to upload the vibe-coded app to my remote repo, and then clone the repo onto the VM so that it could access the code and run the application. I had a lot of trouble getting everything installed, mostly because I had to keep switching between network adapters for fear of exposing something I shouldn't! I realized by the end of it all I should've just stayed connected to the internet the whole time until I confirmed my app was running, and then switch to a host-only network before I start the pen testing.
+
+Here is the app running on the VM:
+
+![Hiking app running on VM](../images/hiking-app-VM-run.png)
+
+# Part 4 - Penetration testing the hiking club application
+
+I was able to successfully install and run OWASP ZAP on my Kali VM. Here are the results of the automated scan I ran, attacking the other VM that was running the hiking club application:
+
+![Automated Scan Results](../images/completed_auto_scan.png)
+
+As you can see, there are 10 alerts from this scan. 4 medium priority, 3 low priority, and 4 informational priority alerts. I'm actually shocked and very impressed that there are no high priority alerts!
+
+Here are more details on all 4 medium priority alerts:
+
+### Medium priority alert 1
+
+![Medium priority alert 1](../images/MediumAlert1.png)
+
+### Medium priority alert 2
+
+![Medium priority alert 2](../images/MediumAlert2.png)
+
+### Medium priority alert 3
+
+![Medium priority alert 3](../images/MediumAlert3.png)
+
+### Medium priority alert 4
+
+![Medium priority alert 4](../images/MediumAlert4.png)
