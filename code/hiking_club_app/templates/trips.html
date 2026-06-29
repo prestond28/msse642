@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Trips — Summit Hiking Club{% endblock %}
+
+{% block content %}
+<h1>Upcoming Trips</h1>
+
+{% if user and user.role == 'admin' %}
+<p><a class="btn btn-primary" href="{{ url_for('new_trip') }}">+ New Trip</a></p>
+{% endif %}
+
+{% if trips %}
+    {% for trip in trips %}
+    <div class="card">
+        <h3>{{ trip.name }}</h3>
+        <div class="meta">{{ trip.date }} &bull; Led by {{ trip.leader_name }}</div>
+        <p>{{ trip.description }}</p>
+
+        {% if user %}
+            {% if trip.id in registered_ids %}
+                <form method="post" action="{{ url_for('unregister_trip', trip_id=trip.id) }}" style="display:inline">
+                    <button class="btn btn-secondary btn-sm" type="submit">Unregister</button>
+                </form>
+                <span style="font-size:0.85rem;color:#27ae60;margin-left:0.5rem;">&#10003; Registered</span>
+            {% else %}
+                <form method="post" action="{{ url_for('register_trip', trip_id=trip.id) }}" style="display:inline">
+                    <button class="btn btn-primary btn-sm" type="submit">Register</button>
+                </form>
+            {% endif %}
+        {% endif %}
+
+        {% if user and user.role == 'admin' %}
+            <a class="btn btn-secondary btn-sm" href="{{ url_for('edit_trip', trip_id=trip.id) }}" style="margin-left:0.5rem">Edit</a>
+            <a class="btn btn-secondary btn-sm" href="{{ url_for('trip_roster', trip_id=trip.id) }}" style="margin-left:0.25rem">Roster</a>
+            <form method="post" action="{{ url_for('delete_trip', trip_id=trip.id) }}" style="display:inline;margin-left:0.25rem"
+                  onsubmit="return confirm('Delete this trip?')">
+                <button class="btn btn-danger btn-sm" type="submit">Delete</button>
+            </form>
+        {% endif %}
+    </div>
+    {% endfor %}
+{% else %}
+    <p>No trips scheduled yet. Check back soon!</p>
+{% endif %}
+
+{% if not user %}
+<p style="margin-top:1.5rem;color:#555;">
+    <a href="{{ url_for('login') }}">Log in</a> or <a href="{{ url_for('register') }}">register</a> to sign up for trips.
+</p>
+{% endif %}
+{% endblock %}

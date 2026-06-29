@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Summit Hiking Club{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<nav>
+    <a class="brand" href="{{ url_for('trips') }}">&#9968; Summit Hiking Club</a>
+    <a href="{{ url_for('trips') }}">Trips</a>
+    {% if user %}
+        <a href="{{ url_for('profile') }}">My Profile</a>
+        {% if user.role == 'admin' %}
+            <a href="{{ url_for('new_trip') }}">New Trip</a>
+            <a href="{{ url_for('admin_users') }}">Manage Users</a>
+        {% endif %}
+        <a href="{{ url_for('logout') }}">Log Out ({{ user.username }})</a>
+    {% else %}
+        <a href="{{ url_for('login') }}">Log In</a>
+        <a href="{{ url_for('register') }}">Register</a>
+    {% endif %}
+</nav>
+
+<div class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <ul class="flash-messages">
+                {% for category, message in messages %}
+                    <li class="flash-{{ category }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+</div>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Edit Trip' if trip else 'New Trip' }} — Summit Hiking Club{% endblock %}
+
+{% block content %}
+<h1>{{ 'Edit Trip' if trip else 'New Trip' }}</h1>
+<div class="card" style="max-width:560px">
+    <form method="post">
+        <label for="name">Trip Name</label>
+        <input type="text" id="name" name="name" value="{{ trip.name if trip else '' }}" required autofocus>
+
+        <label for="date">Date</label>
+        <input type="date" id="date" name="date" value="{{ trip.date if trip else '' }}" required>
+
+        <label for="description">Description</label>
+        <textarea id="description" name="description" required>{{ trip.description if trip else '' }}</textarea>
+
+        <div class="form-actions">
+            <button class="btn btn-primary" type="submit">{{ 'Save Changes' if trip else 'Create Trip' }}</button>
+            <a class="btn btn-secondary" href="{{ url_for('trips') }}" style="margin-left:0.5rem">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

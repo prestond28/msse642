@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block title %}Roster: {{ trip.name }} — Summit Hiking Club{% endblock %}
+
+{% block content %}
+<h1>Roster: {{ trip.name }}</h1>
+<p style="color:#555">{{ trip.date }}</p>
+
+{% if members %}
+<table>
+    <thead>
+        <tr><th>Name</th><th>Username</th><th>Email</th></tr>
+    </thead>
+    <tbody>
+        {% for m in members %}
+        <tr>
+            <td>{{ m.name or '—' }}</td>
+            <td>{{ m.username }}</td>
+            <td>{{ m.email }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No members registered for this trip yet.</p>
+{% endif %}
+
+<p style="margin-top:1.5rem">
+    <a class="btn btn-secondary" href="{{ url_for('trips') }}">Back to Trips</a>
+</p>
+{% endblock %}
